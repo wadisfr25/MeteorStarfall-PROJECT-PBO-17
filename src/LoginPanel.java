@@ -10,16 +10,14 @@ public class LoginPanel extends JLayeredPane {
     private JPasswordField passwordField;
     private Image backgroundImage;
     private Image exitIcon;
-    
+
     public LoginPanel(Main mainApp) {
         this.mainApp = mainApp;
 
-        // Load background
         backgroundImage = new ImageIcon(
             "D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bg2.png"
         ).getImage();
 
-        // Load exit icon (arrow)
         exitIcon = new ImageIcon(
             "D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\ic-backArrow.png"
         ).getImage();
@@ -27,18 +25,18 @@ public class LoginPanel extends JLayeredPane {
         setLayout(null);
         setOpaque(false);
 
-        // =============================
-        //      EXIT BUTTON (ICON)
-        // =============================
+        // =======================================================
+        //                EXIT BUTTON (ICON)
+        // =======================================================
         Image scaledIcon = exitIcon.getScaledInstance(40, 40, Image.SCALE_SMOOTH);
-        JButton exitBtn = new JButton(new ImageIcon(scaledIcon));
 
-        exitBtn.setBounds(15, 15, 40, 40);
-        exitBtn.setBorder(null);
+        JButton exitBtn = new JButton(new ImageIcon(scaledIcon));
+        exitBtn.setBounds(20, 20, 40, 40);
         exitBtn.setContentAreaFilled(false);
+        exitBtn.setBorder(null);
         exitBtn.setFocusPainted(false);
-        exitBtn.setOpaque(false);
         exitBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        exitBtn.setOpaque(false);
 
         exitBtn.addMouseListener(new MouseAdapter() {
             @Override
@@ -59,148 +57,214 @@ public class LoginPanel extends JLayeredPane {
                 "Konfirmasi Keluar",
                 JOptionPane.YES_NO_OPTION
             );
-            if (confirm == JOptionPane.YES_OPTION) {
-                System.exit(0);
-            }
+            if (confirm == JOptionPane.YES_OPTION) System.exit(0);
         });
 
         add(exitBtn, JLayeredPane.PALETTE_LAYER);
 
-        // =============================
-        //        LOGIN CONTENT
-        // =============================
-        JPanel content = new JPanel(new GridBagLayout());
-        content.setOpaque(false);
-        content.setBounds(0, 0, 1920, 1080);
-        add(content, JLayeredPane.DEFAULT_LAYER);
+        // =======================================================
+        //                 GLASS CARD LOGIN BOX
+        // =======================================================
+        JPanel card = new JPanel(new GridBagLayout()) {
 
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+
+                // Glass background
+                g2.setColor(new Color(255, 255, 255, 35));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 35, 35);
+
+                // Neon border
+                g2.setColor(new Color(0, 220, 255, 120));
+                g2.setStroke(new BasicStroke(4));
+                g2.drawRoundRect(0, 0, getWidth(), getHeight(), 35, 35);
+            }
+        };
+
+        card.setOpaque(false);
+        card.setBounds(getWidth() / 2 - 250, getHeight() / 2 - 200, 500, 380);
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                card.setBounds(getWidth() / 2 - 250, getHeight() / 2 - 200, 500, 380);
+            }
+        });
+
+        add(card, JLayeredPane.DEFAULT_LAYER);
+
+        // =======================================================
+        //                   CONTENT INSIDE CARD
+        // =======================================================
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(12, 12, 12, 12);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel title = new JLabel("Meteor Starfall", SwingConstants.CENTER);
-        title.setFont(new Font("Pixel NES", Font.BOLD, 32));
+        // TITLE
+        JLabel title = new JLabel("METEOR STARFALL", SwingConstants.CENTER);
+        title.setFont(new Font("Pixel NES", Font.BOLD, 30));
         title.setForeground(Color.WHITE);
-
-        gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
-        content.add(title, gbc);
+        card.add(title, gbc);
 
         gbc.gridwidth = 1;
-        gbc.gridy = 1;
 
+        // USERNAME
+        gbc.gridy = 1;
+        gbc.gridx = 0;
         JLabel userLabel = new JLabel("Username:");
         userLabel.setForeground(Color.WHITE);
         userLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        content.add(userLabel, gbc);
+        card.add(userLabel, gbc);
 
         gbc.gridx = 1;
-        usernameField = new JTextField(12);
-        usernameField.setBackground(new Color(20,20,20));
-        usernameField.setForeground(Color.WHITE);
-        usernameField.setFont(new Font("Arial", Font.PLAIN, 16));
-        usernameField.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
-        content.add(usernameField, gbc);
+        usernameField = createTextField();
+        card.add(usernameField, gbc);
 
-        gbc.gridx = 0;
+        // PASSWORD
         gbc.gridy = 2;
+        gbc.gridx = 0;
         JLabel passLabel = new JLabel("Password:");
         passLabel.setForeground(Color.WHITE);
         passLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        content.add(passLabel, gbc);
+        card.add(passLabel, gbc);
 
         gbc.gridx = 1;
-        passwordField = new JPasswordField(12);
-        passwordField.setBackground(new Color(20,20,20));
-        passwordField.setForeground(Color.WHITE);
-        passwordField.setFont(new Font("Arial", Font.PLAIN, 16));
-        passwordField.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
-        content.add(passwordField, gbc);
+        passwordField = createPasswordField();
+        card.add(passwordField, gbc);
 
-        gbc.gridx = 0;
+        // LOGIN BUTTON
         gbc.gridy = 3;
+        gbc.gridx = 0;
         gbc.gridwidth = 2;
         JButton loginBtn = createButton("Login");
-        content.add(loginBtn, gbc);
+        card.add(loginBtn, gbc);
 
+        // REGISTER BUTTON
         gbc.gridy = 4;
         JButton registerBtn = createButton("Register");
-        content.add(registerBtn, gbc);
+        card.add(registerBtn, gbc);
 
         loginBtn.addActionListener(e -> doLogin());
         registerBtn.addActionListener(e -> doRegister());
     }
 
-    // =====================================================
-    //   Utility untuk membuat icon lebih terang (hover)
-    // =====================================================
-    private Image brightenImage(Image img) {
-        BufferedImage buff = new BufferedImage(
-                img.getWidth(null),
-                img.getHeight(null),
-                BufferedImage.TYPE_INT_ARGB
-        );
+    // =======================================================
+    //                 MODERN TEXT FIELD
+    // =======================================================
+    private JTextField createTextField() {
+        JTextField field = new JTextField(12);
+        field.setFont(new Font("Arial", Font.PLAIN, 16));
 
-        Graphics2D g = buff.createGraphics();
-        g.drawImage(img, 0, 0, null);
-        g.dispose();
+        // FIX: solid background + opaque
+        field.setBackground(new Color(10, 10, 10));
+        field.setOpaque(true);
 
-        for (int y = 0; y < buff.getHeight(); y++) {
-            for (int x = 0; x < buff.getWidth(); x++) {
-                int rgba = buff.getRGB(x, y);
-                Color c = new Color(rgba, true);
-                buff.setRGB(x, y, c.brighter().getRGB());
-            }
-        }
+        field.setForeground(Color.WHITE);
+        field.setBorder(BorderFactory.createLineBorder(new Color(0, 200, 255), 2));
 
-        return buff;
+        // FIX: paksa repaint penuh agar tidak ghosting
+        field.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
+        });
+
+        return field;
     }
 
-    // =====================================================
-    //                BUTTON STYLE
-    // =====================================================
+
+    private JPasswordField createPasswordField() {
+        JPasswordField field = new JPasswordField(12);
+        field.setFont(new Font("Arial", Font.PLAIN, 16));
+
+        field.setBackground(new Color(10, 10, 10));
+        field.setOpaque(true);
+
+        field.setForeground(Color.WHITE);
+        field.setBorder(BorderFactory.createLineBorder(new Color(0, 200, 255), 2));
+
+        field.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
+        });
+
+        return field;
+    }
+
+
+    // =======================================================
+    //                 MODERN BUTTON
+    // =======================================================
     private JButton createButton(String text) {
         JButton btn = new JButton(text);
         btn.setFocusPainted(false);
-        btn.setFont(new Font("Arial", Font.BOLD, 18));
-        btn.setBackground(new Color(0,150,255));
+        btn.setBackground(new Color(0, 180, 255));
         btn.setForeground(Color.BLACK);
+        btn.setFont(new Font("Arial", Font.BOLD, 18));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         btn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                btn.setBackground(new Color(0,200,255));
+                btn.setBackground(new Color(0, 230, 255));
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                btn.setBackground(new Color(0,150,255));
+                btn.setBackground(new Color(0, 180, 255));
             }
         });
 
         return btn;
     }
 
-    // =====================================================
-    //                   BACKGROUND
-    // =====================================================
+    // =======================================================
+    //                BRIGHTEN IMAGE FOR HOVER
+    // =======================================================
+    private Image brightenImage(Image img) {
+        BufferedImage buff = new BufferedImage(
+            img.getWidth(null),
+            img.getHeight(null),
+            BufferedImage.TYPE_INT_ARGB
+        );
+        Graphics2D g = buff.createGraphics();
+        g.drawImage(img, 0, 0, null);
+        g.dispose();
+
+        for (int y = 0; y < buff.getHeight(); y++) {
+            for (int x = 0; x < buff.getWidth(); x++) {
+                Color c = new Color(buff.getRGB(x, y), true);
+                buff.setRGB(x, y, c.brighter().getRGB());
+            }
+        }
+        return buff;
+    }
+
+    // =======================================================
+    //                BACKGROUND RENDER
+    // =======================================================
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
         g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
 
-        g.setColor(new Color(0, 0, 0, 140));
+        g.setColor(new Color(0, 0, 0, 150));
         g.fillRect(0, 0, getWidth(), getHeight());
     }
 
-    // =====================================================
-    //                 LOGIN FUNCTION
-    // =====================================================
+    // =======================================================
+    //                    LOGIN CHECK
+    // =======================================================
     private void doLogin() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
+        
 
         if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this,
@@ -220,25 +284,22 @@ public class LoginPanel extends JLayeredPane {
         }
     }
 
-    // =====================================================
-    //                REGISTER FUNCTION
-    // =====================================================
     private void doRegister() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
         if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                "Isi username dan password untuk registrasi!",
+                "Isi username dan password terlebih dahulu!",
                 "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (KoneksiDatabase.registerUser(username, password)) {
-            JOptionPane.showMessageDialog(this, "Registrasi berhasil!");
+            JOptionPane.showMessageDialog(this, "Registrasi berhasil!");    
         } else {
             JOptionPane.showMessageDialog(this,
-                "Username sudah digunakan.",
+                "Username sudah digunakan!",
                 "Registrasi Gagal", JOptionPane.WARNING_MESSAGE);
         }
     }
