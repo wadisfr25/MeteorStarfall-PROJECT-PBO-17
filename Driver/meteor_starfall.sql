@@ -19,7 +19,7 @@ SET time_zone = "+00:00";
 
 --
 -- Database: `meteor_starfall`
---git commit -m "first commit"
+-- git commit -m "first commit"
 
 -- --------------------------------------------------------
 
