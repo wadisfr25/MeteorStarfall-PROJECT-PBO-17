@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.sql.*;
@@ -15,135 +14,180 @@ public class LeaderboardPanel extends JPanel {
         this.mainApp = mainApp;
         this.username = username;
 
-        // Load background
-        backgroundImage = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bg2.png").getImage();
+        backgroundImage = new ImageIcon(
+            "D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bg2.png"
+        ).getImage();
 
         setLayout(new BorderLayout());
         setOpaque(false);
 
-        // ============================
-        //            TITLE
-        // ============================
-        JLabel title = new JLabel("Top 10 Leaderboard", SwingConstants.CENTER);
-        title.setFont(new Font("Pixel NES", Font.BOLD, 28));
-        title.setForeground(Color.WHITE);
-        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        // ======================================================
+        //                   TITLE (NEON EFFECT)
+        // ======================================================
+        JLabel title = new JLabel("LEADERBOARD", SwingConstants.CENTER);
+        title.setForeground(new Color(0, 220, 255));
+        title.setFont(new Font("Pixel NES", Font.BOLD, 36));
+        title.setBorder(BorderFactory.createEmptyBorder(30, 0, 20, 0));
 
-        // ============================
-        //        TABLE MODEL
-        // ============================
-        String[] columns = {"Username", "Score", "Date Played"};
+        // ======================================================
+        //                   TABLE MODEL
+        // ======================================================
+        String[] columns = {"Rank", "Username", "Score", "Date"};
         DefaultTableModel model = new DefaultTableModel(columns, 0);
 
         JTable table = new JTable(model);
-        table.setFont(new Font("Arial", Font.PLAIN, 16));
+        table.setFont(new Font("Arial", Font.PLAIN, 18));
         table.setForeground(Color.WHITE);
-        table.setBackground(new Color(20, 20, 20));
-        table.setRowHeight(32);
+        table.setBackground(new Color(0, 0, 0, 0));
+        table.setOpaque(false);
+        table.setRowHeight(40);
         table.setEnabled(false);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
 
         // Center alignment
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
+        center.setOpaque(false);
 
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(center);
         }
 
-        // Header style
+        // ======================================================
+        //              HEADER STYLE (CYAN GLOW)
+        // ======================================================
         JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setPreferredSize(new Dimension(0, 40));
+        header.setFont(new Font("Arial", Font.BOLD, 20));
         header.setBackground(new Color(0, 180, 255));
         header.setForeground(Color.BLACK);
         ((DefaultTableCellRenderer) header.getDefaultRenderer())
                 .setHorizontalAlignment(SwingConstants.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setBackground(new Color(0, 0, 0, 150));
-
-        // ============================
-        //        BACK BUTTON
-        // ============================
-        JButton backBtn = new JButton("← Back to Menu");
-        backBtn.setFont(new Font("Arial", Font.BOLD, 16));
-        backBtn.setFocusPainted(false);
-        backBtn.setBackground(new Color(0, 180, 255));
-        backBtn.setForeground(Color.BLACK);
-        backBtn.setPreferredSize(new Dimension(180, 40));
-        backBtn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
-
-        // Hover effect
-        backBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+        // ======================================================
+        //                  GLASS CARD WRAPPER
+        // ======================================================
+        JPanel card = new JPanel(new BorderLayout()) {
             @Override
-            public void mouseEntered(MouseEvent evt) {
-                backBtn.setBackground(new Color(0, 220, 255));
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+
+                g2.setColor(new Color(255, 255, 255, 25));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
+
+                g2.setColor(new Color(0, 220, 255, 80));
+                g2.setStroke(new BasicStroke(3));
+                g2.drawRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
             }
+        };
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setBorder(null);
+
+        // Custom scrollbar (gelap & kecil)
+        JScrollBar sb = scroll.getVerticalScrollBar();
+        sb.setPreferredSize(new Dimension(8, 0));
+        sb.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
             @Override
-            public void mouseExited(MouseEvent evt) {
-                backBtn.setBackground(new Color(0, 180, 255));
+            protected void configureScrollBarColors() {
+                this.thumbColor = new Color(0, 180, 255);
+                this.trackColor = new Color(0, 0, 0, 100);
             }
         });
 
-        backBtn.addActionListener(e -> mainApp.showMainMenu(username));
+        card.add(scroll);
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setOpaque(false);
-        bottomPanel.add(backBtn);
+        // ======================================================
+        //                  BACK BUTTON
+        // ======================================================
+        JButton back = new JButton("Back");
+        back.setFont(new Font("Arial", Font.BOLD, 18));
+        back.setBackground(new Color(0, 180, 255));
+        back.setForeground(Color.BLACK);
+        back.setFocusPainted(false);
+        back.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        back.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        // Add components
+        back.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent evt) {
+                back.setBackground(new Color(0, 220, 255));
+            }
+            @Override
+            public void mouseExited(MouseEvent evt) {
+                back.setBackground(new Color(0, 180, 255));
+            }
+        });
+
+        back.addActionListener(e -> mainApp.showMainMenu(username));
+
+        JPanel bottom = new JPanel();
+        bottom.setOpaque(false);
+        bottom.add(back);
+
+        // ======================================================
+        //          ADD ITEMS TO MAIN PANEL
+        // ======================================================
         add(title, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
-        add(bottomPanel, BorderLayout.SOUTH);
+        add(card, BorderLayout.CENTER);
+        add(bottom, BorderLayout.SOUTH);
 
-        // Load leaderboard data
         loadLeaderboard(model);
     }
 
-    // ============================
-    //      LOAD LEADERBOARD
-    // ============================
+    // ======================================================
+    //               LOAD LEADERBOARD DATA
+    // ======================================================
     private void loadLeaderboard(DefaultTableModel model) {
         try (Connection conn = KoneksiDatabase.getConnection()) {
 
-            String query = "SELECT u.username, s.score, s.date_played "
-                         + "FROM scores s JOIN users u ON s.user_id = u.user_id "
-                         + "ORDER BY s.score DESC LIMIT 10";
+            String query = """
+                SELECT u.username, s.score, s.date_played
+                FROM scores s JOIN users u ON s.user_id = u.user_id
+                ORDER BY s.score DESC
+                LIMIT 10
+            """;
 
             PreparedStatement ps = conn.prepareStatement(query);
             ResultSet rs = ps.executeQuery();
+
+            int rank = 1;
 
             while (rs.next()) {
                 String user = rs.getString("username");
                 int score = rs.getInt("score");
                 String date = rs.getString("date_played");
 
-                model.addRow(new Object[]{user, score, date});
+                model.addRow(new Object[]{rank, user, score, date});
+                rank++;
             }
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(
-                    this,
-                    "Gagal memuat leaderboard: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
+                this,
+                "Gagal memuat leaderboard: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
             );
         }
-        
     }
 
-    // ============================
-    //     BACKGROUND DRAWING
-    // ============================
+    // ======================================================
+    //                    BACKGROUND
+    // ======================================================
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
         g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
 
-        // Overlay gelap agar tabel dan text lebih jelas
-        g.setColor(new Color(0, 0, 0, 150));
+        g.setColor(new Color(0, 0, 0, 140));
         g.fillRect(0, 0, getWidth(), getHeight());
     }
 }
