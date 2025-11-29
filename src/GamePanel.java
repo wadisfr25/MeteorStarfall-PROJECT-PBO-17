@@ -1,8 +1,13 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.ArrayList;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import javax.swing.*;
+
 
 public class GamePanel extends JPanel {
 
@@ -21,6 +26,14 @@ public class GamePanel extends JPanel {
     private GameThread gameThread;
 
     private BufferedImage lastFrame;  // <<-- screenshot frame terakhir
+    private long invincibleStart = 0;
+    private final long INVINCIBLE_DURATION = 3000; // 3 detik
+    private Image heartImg;
+    private Image healthImg;
+    private double meteorBaseSpeed = 5.0;     // kecepatan awal meteor
+    private double meteorMaxSpeed = 17.0;     // batas maksimal, dibawah star (15)
+    private Clip bgmClip;
+
 
 
     public GamePanel(Main aThis, String username) {
@@ -42,7 +55,7 @@ public class GamePanel extends JPanel {
 
         setupKeyBindings();
         setupMouseControl();
-
+        startBGM();
         gameThread = new GameThread(this);
         gameThread.start();
     }
@@ -53,6 +66,8 @@ public class GamePanel extends JPanel {
         playerImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\rocket_128_clean.png").getImage();
         meteorImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\meteor_384.png").getImage();
         starImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\star_128_cropped.png").getImage();
+        heartImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\heart_512.png").getImage();
+        healthImg= new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\heart_128.png").getImage();
     }
 
 
@@ -149,40 +164,100 @@ public class GamePanel extends JPanel {
         if (rightPressed) player.moveRight(getWidth());
 
         // Meteor spawn
-        if (Math.random() < 0.02) {
+        if (Math.random() < 0.04) {
             int spawnX = (int) (Math.random() * getWidth());
-            objects.add(new Meteor(spawnX, -200, 5 + Math.random(), meteorImg));
+            
+            double speed = getCurrentMeteorSpeed() + Math.random(); // + random kecil variasi
+
+            objects.add(new Meteor(spawnX, -200, speed, meteorImg));
         }
 
+
         // Star spawn
-        if (Math.random() < 0.01) {
+        if (Math.random() < 0.001) {
             int spawnX = (int) (Math.random() * getWidth());
-            objects.add(new Star(spawnX, -200, 15 + Math.random() * 3, starImg));
+            objects.add(new Star(spawnX, -200, 20 + Math.random() * 3, starImg));
         }
 
         // Update object
         ArrayList<FallingObject> removeList = new ArrayList<>();
         for (FallingObject obj : objects) {
             obj.update();
-
+            // Jika objek adalah health pickup
+        if (obj instanceof HealthPickup) {
             if (pixelPerfectCollision(
-                player.getImage(), player.getX(), player.getY(),
-                obj.getImage(), obj.getX(), obj.getY())) {
+                    player.getImage(), player.getX(), player.getY(),
+                    obj.getImage(), obj.getX(), obj.getY())) {
 
-                captureLastFrame();  // <<-- AMBIL SCREENSHOT
+                // Tambah health, maksimal 3
+                int hp = player.getHealth();
+                if (hp < 3) player.setHealth(hp + 1);
 
+                removeList.add(obj); // hilangkan pickup
+                continue;
+            }
+        }
+
+        if (!player.isInvincible() && pixelPerfectCollision(
+            player.getImage(), player.getX(), player.getY(),
+            obj.getImage(), obj.getX(), obj.getY())) {
+
+            // PLAYER KENA DAMAGE
+            player.takeDamage();
+            
+            if (player.getHealth() <= 0) {
+                // GAME OVER
+                captureLastFrame();
                 gameThread.stopGame();
                 gameOver();
                 return;
             }
+
+            // PLAYER MASUK MODE INVINCIBLE
+            player.setInvincible(true);
+            invincibleStart = System.currentTimeMillis();
+
+            // RESPWAN PLAYER
+            player.respawn(getWidth(), getHeight());
+
+            // Hapus objek yang menabrak supaya tidak kena lagi
+            removeList.add(obj);
+
+            continue;
+        }
+
 
             if (obj.isOutOfScreen(getHeight())) {
                 score++;
                 removeList.add(obj);
             }
         }
+        // Cek apakah invincible sudah berakhir
+        if (player.isInvincible()) {
+            long now = System.currentTimeMillis();
+            if (now - invincibleStart >= INVINCIBLE_DURATION) {
+                player.setInvincible(false);
+            }
+        }
+        // Health pickup spawn sangat jarang: 1-2 menit sekali
+        if (Math.random() < 0.00015) {
+            int spawnX = (int) (Math.random() * getWidth());
+            objects.add(new HealthPickup(spawnX, -100, 6 + Math.random(), healthImg));
+        }
+
+        double currentSpeed = getCurrentMeteorSpeed();
+
+        for (FallingObject obj : objects) {
+            if (obj instanceof Meteor) {
+                // Buat meteor existing ikut semakin cepat
+                if (obj.speed < currentSpeed) {
+                    obj.speed = currentSpeed;
+                }
+            }
+        }
 
         objects.removeAll(removeList);
+        
     }
 
 
@@ -201,7 +276,7 @@ public class GamePanel extends JPanel {
     //                   GAME OVER
     // =====================================================
     private void gameOver() {
-
+        stopBGM();
         int timePlayed = getTimePlayed();
         Main mainApp = (Main) SwingUtilities.getWindowAncestor(this);
         String username = mainApp.getCurrentUser();
@@ -266,7 +341,9 @@ public void paintComponent(Graphics g) {
     g.setColor(Color.WHITE);
     g.setFont(new Font("Arial", Font.BOLD, 20));
     g.drawString("Score: " + score, 10, 25);
-    g.drawString("Time: " + getTimePlayed() + "s", getWidth() - 150, 25);
+    g.drawString("Time: " + getTimePlayed() + "s", 10, 50);
+
+    drawHealth(g);
 }
 
 
@@ -317,4 +394,46 @@ public void paintComponent(Graphics g) {
     public boolean isPaused() {
         return paused;
     }
+    private void drawHealth(Graphics g) {
+        int health = player.getHealth();
+
+        int xStart = getWidth() - (health * 35) - 20; // posisi kanan atas
+        int yStart = 10;
+
+        for (int i = 0; i < health; i++) {
+            g.drawImage(heartImg, xStart + (i * 35), yStart, 30, 30, null);
+        }
+    }
+
+    private double getCurrentMeteorSpeed() {
+        int time = getTimePlayed();
+
+        // setiap 30 detik naik 1.0 speed
+        double newSpeed = meteorBaseSpeed + (time / 30) * 2.0;
+
+        // batasi agar tidak melebihi meteorMaxSpeed
+        return Math.min(newSpeed, meteorMaxSpeed);
+    }
+    private void startBGM() {
+        try {
+            File file = new File("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bgm2.wav");
+            AudioInputStream audio = AudioSystem.getAudioInputStream(file);
+
+            bgmClip = AudioSystem.getClip();
+            bgmClip.open(audio);
+            bgmClip.loop(Clip.LOOP_CONTINUOUSLY); // LOOPING FOREVER
+            bgmClip.start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopBGM() {
+        if (bgmClip != null && bgmClip.isRunning()) {
+            bgmClip.stop();
+            bgmClip.close();
+        }
+    }
+
 }
