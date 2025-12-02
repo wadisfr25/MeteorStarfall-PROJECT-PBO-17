@@ -1,3 +1,4 @@
+
 import java.awt.*;
 
 public class HealthPickup extends FallingObject implements Collidable {
@@ -16,5 +17,6 @@ public class HealthPickup extends FallingObject implements Collidable {
         return panel.pixelPerfectCollision(
                 p.getImage(), p.getX(), p.getY(),
                 this.image, this.x, this.y
-        );
-    }
+        );
+    }
+}

@@ -1,6 +1,4 @@
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
 import javax.swing.*;
 
 public class GameOverPanel extends JPanel {
@@ -129,21 +127,4 @@ public class GameOverPanel extends JPanel {
         g.setColor(new Color(0, 0, 0, 170));
         g.fillRect(0, 0, getWidth(), getHeight());
     }
-    private void setupExitKey() {
-
-        InputMap im = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-        ActionMap am = getActionMap();
-
-        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "exitProgram");
-        am.put("exitProgram", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-                if (ExitHandler.confirmExit(GameOverPanel.this)) {
-                    System.exit(0);
-                }
-            }
-        });
-    }
-
 }
