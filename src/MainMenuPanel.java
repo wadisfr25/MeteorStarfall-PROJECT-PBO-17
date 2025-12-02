@@ -1,4 +1,6 @@
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
@@ -12,6 +14,7 @@ public class MainMenuPanel extends JPanel {
     public MainMenuPanel(Main mainApp, String username) {
         this.mainApp = mainApp;
         this.username = username;
+        setupExitKey();
 
         backgroundImage = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bg2.png").getImage();
 
@@ -145,4 +148,21 @@ public class MainMenuPanel extends JPanel {
         g.setColor(new Color(0, 0, 0, 140));
         g.fillRect(0, 0, getWidth(), getHeight());
     }
+    private void setupExitKey() {
+
+    InputMap im = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    ActionMap am = getActionMap();
+
+    im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "exitProgram");
+    am.put("exitProgram", new AbstractAction() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            if (ExitHandler.confirmExit(MainMenuPanel.this)) {
+                System.exit(0);
+            }
+        }
+    });
+}
+
 }
