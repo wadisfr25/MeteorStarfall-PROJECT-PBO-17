@@ -5,10 +5,6 @@ public abstract class FallingObject {
     protected int width, height;
     protected double speed;
     protected Image image;
-    public Image getImage() { return image; }
-    public int getX() { return x; }
-    public int getY() { return y; }
-
 
     public FallingObject(int x, int y, double speed, Image image) {
         this.x = x;
@@ -17,15 +13,16 @@ public abstract class FallingObject {
         this.image = image;
         this.width = image.getWidth(null);
         this.height = image.getHeight(null);
-    }
-
-    public void update() {
-        y += speed;
-    }
+    }       
+    public abstract void update();
 
     public void draw(Graphics g) {
         g.drawImage(image, x, y, null);
     }
+
+    public Image getImage() { return image; }
+    public int getX() { return x; }
+    public int getY() { return y; }
 
     public Rectangle getBounds() {
         return new Rectangle(x, y, width, height);
@@ -35,3 +32,4 @@ public abstract class FallingObject {
         return y > panelHeight;
     }
 }
+

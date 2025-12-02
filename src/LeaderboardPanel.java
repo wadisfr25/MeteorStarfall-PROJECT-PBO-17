@@ -1,4 +1,6 @@
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.sql.*;
 import javax.swing.*;
@@ -190,4 +192,21 @@ public class LeaderboardPanel extends JPanel {
         g.setColor(new Color(0, 0, 0, 140));
         g.fillRect(0, 0, getWidth(), getHeight());
     }
+    private void setupExitKey() {
+
+    InputMap im = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+    ActionMap am = getActionMap();
+
+    im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "exitProgram");
+    am.put("exitProgram", new AbstractAction() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+            if (ExitHandler.confirmExit(LeaderboardPanel.this)) {
+                System.exit(0);
+            }
+        }
+    });
+}
+
 }

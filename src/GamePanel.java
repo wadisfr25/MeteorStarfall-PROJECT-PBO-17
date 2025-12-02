@@ -8,7 +8,6 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.swing.*;
 
-
 public class GamePanel extends JPanel {
 
     private Player player;
@@ -25,16 +24,14 @@ public class GamePanel extends JPanel {
 
     private GameThread gameThread;
 
-    private BufferedImage lastFrame;  // <<-- screenshot frame terakhir
+    private BufferedImage lastFrame;  // screenshot frame terakhir
     private long invincibleStart = 0;
     private final long INVINCIBLE_DURATION = 3000; // 3 detik
     private Image heartImg;
     private Image healthImg;
-    private double meteorBaseSpeed = 5.0;     // kecepatan awal meteor
-    private double meteorMaxSpeed = 17.0;     // batas maksimal, dibawah star (15)
+    private double meteorBaseSpeed = 5.0;     
+    private double meteorMaxSpeed = 17.0;     
     private Clip bgmClip;
-
-
 
     public GamePanel(Main aThis, String username) {
         setFocusable(true);
@@ -42,7 +39,6 @@ public class GamePanel extends JPanel {
 
         player = new Player(200, 550, playerImg);
 
-        // Player otomatis diposisikan paling bawah
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -56,6 +52,7 @@ public class GamePanel extends JPanel {
         setupKeyBindings();
         setupMouseControl();
         startBGM();
+
         gameThread = new GameThread(this);
         gameThread.start();
     }
@@ -72,7 +69,7 @@ public class GamePanel extends JPanel {
 
 
     // =====================================================
-    //                KEY BINDINGS
+    // KEY BINDINGS
     // =====================================================
     private void setupKeyBindings() {
         InputMap im = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -134,11 +131,40 @@ public class GamePanel extends JPanel {
                 }
             }
         });
+        // =====================================
+        // ESC → PAUSE + EXIT PROGRAM
+        // =====================================
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "exitProgram");
+        am.put("exitProgram", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                // Pause dulu supaya layar freeze
+                if (!paused) {
+                    paused = true;
+                    pauseStart = System.currentTimeMillis();
+                    captureLastFrame();
+                }
+
+                // Konfirmasi keluar program
+                if (ExitHandler.confirmExit(GamePanel.this)) {
+
+                    // Stop semua thread & suara
+                    gameThread.stopGame();
+                    stopBGM();
+
+                    // Keluar total dari aplikasi
+                    System.exit(0);
+                }
+            }
+        });
     }
+    
+    
 
 
     // =====================================================
-    //                MOUSE CONTROL
+    // MOUSE CONTROL
     // =====================================================
     private void setupMouseControl() {
         addMouseMotionListener(new MouseMotionAdapter() {
@@ -153,11 +179,10 @@ public class GamePanel extends JPanel {
 
 
     // =====================================================
-    //                GAME UPDATE LOOP
+    // GAME UPDATE LOOP
     // =====================================================
     public void updateGame() {
         
-
         if (paused) return;
 
         if (leftPressed) player.moveLeft();
@@ -167,11 +192,10 @@ public class GamePanel extends JPanel {
         if (Math.random() < 0.04) {
             int spawnX = (int) (Math.random() * getWidth());
             
-            double speed = getCurrentMeteorSpeed() + Math.random(); // + random kecil variasi
+            double speed = getCurrentMeteorSpeed() + Math.random();
 
             objects.add(new Meteor(spawnX, -200, speed, meteorImg));
         }
-
 
         // Star spawn
         if (Math.random() < 0.001) {
@@ -179,101 +203,88 @@ public class GamePanel extends JPanel {
             objects.add(new Star(spawnX, -200, 20 + Math.random() * 3, starImg));
         }
 
-        // Update object
         ArrayList<FallingObject> removeList = new ArrayList<>();
+
         for (FallingObject obj : objects) {
             obj.update();
-            // Jika objek adalah health pickup
-        if (obj instanceof HealthPickup) {
-            if (pixelPerfectCollision(
-                    player.getImage(), player.getX(), player.getY(),
-                    obj.getImage(), obj.getX(), obj.getY())) {
 
-                // Tambah health, maksimal 3
-                int hp = player.getHealth();
-                if (hp < 3) player.setHealth(hp + 1);
+            // ============================================
+            // COLLISION SYSTEM BARU (MENGGUNAKAN Collidable)
+            // ============================================
+            if (obj instanceof Collidable) {
+                Collidable col = (Collidable) obj;
 
-                removeList.add(obj); // hilangkan pickup
-                continue;
+                if (col.collidesWith(player, this)) {
+
+                    // HEALTH PICKUP
+                    if (obj instanceof HealthPickup) {
+                        int hp = player.getHealth();
+                        if (hp < 3) player.setHealth(hp + 1);
+
+                        removeList.add(obj);
+                        continue;
+                    }
+
+                    // METEOR
+                    if (obj instanceof Meteor && !player.isInvincible()) {
+
+                        player.takeDamage();
+                        
+                        if (player.getHealth() <= 0) {
+                            captureLastFrame();
+                            gameThread.stopGame();
+                            gameOver();
+                            return;
+                        }
+
+                        player.setInvincible(true);
+                        invincibleStart = System.currentTimeMillis();
+
+                        player.respawn(getWidth(), getHeight());
+
+                        removeList.add(obj);
+                        continue;
+                    }
+                }
             }
-        }
-
-        if (!player.isInvincible() && pixelPerfectCollision(
-            player.getImage(), player.getX(), player.getY(),
-            obj.getImage(), obj.getX(), obj.getY())) {
-
-            // PLAYER KENA DAMAGE
-            player.takeDamage();
-            
-            if (player.getHealth() <= 0) {
-                // GAME OVER
-                captureLastFrame();
-                gameThread.stopGame();
-                gameOver();
-                return;
-            }
-
-            // PLAYER MASUK MODE INVINCIBLE
-            player.setInvincible(true);
-            invincibleStart = System.currentTimeMillis();
-
-            // RESPWAN PLAYER
-            player.respawn(getWidth(), getHeight());
-
-            // Hapus objek yang menabrak supaya tidak kena lagi
-            removeList.add(obj);
-
-            continue;
-        }
-
 
             if (obj.isOutOfScreen(getHeight())) {
                 score++;
                 removeList.add(obj);
             }
         }
-        // Cek apakah invincible sudah berakhir
+
+        // Cek invincible
         if (player.isInvincible()) {
             long now = System.currentTimeMillis();
             if (now - invincibleStart >= INVINCIBLE_DURATION) {
                 player.setInvincible(false);
             }
         }
-        // Health pickup spawn sangat jarang: 1-2 menit sekali
+
+        // Health pickup spawn jarang
         if (Math.random() < 0.00015) {
             int spawnX = (int) (Math.random() * getWidth());
             objects.add(new HealthPickup(spawnX, -100, 6 + Math.random(), healthImg));
         }
 
-        double currentSpeed = getCurrentMeteorSpeed();
-
-        for (FallingObject obj : objects) {
-            if (obj instanceof Meteor) {
-                // Buat meteor existing ikut semakin cepat
-                if (obj.speed < currentSpeed) {
-                    obj.speed = currentSpeed;
-                }
-            }
-        }
-
         objects.removeAll(removeList);
-        
     }
 
 
     // =====================================================
-    //            FINAL FRAME SCREENSHOT
+    // CAPTURE LAST FRAME
     // =====================================================
     private void captureLastFrame() {
         lastFrame = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = lastFrame.createGraphics();
-        paint(g2);   // menggambar tampilan terakhir
+        paint(g2);
         g2.dispose();
     }
 
 
     // =====================================================
-    //                   GAME OVER
+    // GAME OVER
     // =====================================================
     private void gameOver() {
         stopBGM();
@@ -290,7 +301,7 @@ public class GamePanel extends JPanel {
 
 
     // =====================================================
-    //                    TIMER
+    // TIMER
     // =====================================================
     private int getTimePlayed() {
         long now = System.currentTimeMillis();
@@ -299,60 +310,50 @@ public class GamePanel extends JPanel {
 
 
     // =====================================================
-    //                     RENDER
+    // RENDER
     // =====================================================
     @Override
+    public void paintComponent(Graphics g) {
 
-public void paintComponent(Graphics g) {
-    // ❗ Jangan clear layar saat paused
-    if (paused && lastFrame != null) {
-        g.drawImage(lastFrame, 0, 0, getWidth(), getHeight(), null);
+        if (paused && lastFrame != null) {
+            g.drawImage(lastFrame, 0, 0, getWidth(), getHeight(), null);
 
-        // Overlay gelap
-        g.setColor(new Color(0, 0, 0, 90));
-        g.fillRect(0, 0, getWidth(), getHeight());
+            g.setColor(new Color(0, 0, 0, 90));
+            g.fillRect(0, 0, getWidth(), getHeight());
 
-        // Tulisan PAUSED
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 60));
+            g.drawString("PAUSED", getWidth()/2 - 120, getHeight()/2);
+
+            return;
+        }
+
+        super.paintComponent(g);
+
+        Graphics2D g2 = (Graphics2D) g;
+
+        g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
+
+        g2.setColor(new Color(0, 0, 0, 120));
+        g2.fillRect(0, 0, getWidth(), getHeight());
+
+        player.draw(g);
+        for (FallingObject obj : objects) obj.draw(g);
+
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 60));
-        g.drawString("PAUSED", getWidth()/2 - 120, getHeight()/2);
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        g.drawString("Score: " + score, 10, 25);
+        g.drawString("Time: " + getTimePlayed() + "s", 10, 50);
 
-        return; // ❗ STOP, jangan render player & meteor lagi
+        drawHealth(g);
     }
 
-    // =========================
-    // NORMAL RENDER (TIDAK PAUSE)
-    // =========================
-    super.paintComponent(g);
-
-    Graphics2D g2 = (Graphics2D) g;
-
-    g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), null);
-
-    // overlay gelap background
-    g2.setColor(new Color(0, 0, 0, 120));
-    g2.fillRect(0, 0, getWidth(), getHeight());
-
-    // player & objek
-    player.draw(g);
-    for (FallingObject obj : objects) obj.draw(g);
-
-    // UI teks
-    g.setColor(Color.WHITE);
-    g.setFont(new Font("Arial", Font.BOLD, 20));
-    g.drawString("Score: " + score, 10, 25);
-    g.drawString("Time: " + getTimePlayed() + "s", 10, 50);
-
-    drawHealth(g);
-}
-
-
 
     // =====================================================
-    //      PIXEL PERFECT COLLISION
+    // PIXEL PERFECT COLLISION
     // =====================================================
-    private boolean pixelPerfectCollision(Image img1, int x1, int y1,
-                                          Image img2, int x2, int y2) {
+    public boolean pixelPerfectCollision(Image img1, int x1, int y1,
+                                         Image img2, int x2, int y2) {
 
         BufferedImage b1 = convertToBuffered(img1);
         BufferedImage b2 = convertToBuffered(img2);
@@ -391,13 +392,16 @@ public void paintComponent(Graphics g) {
         return b;
     }
 
+
     public boolean isPaused() {
         return paused;
     }
+
+
     private void drawHealth(Graphics g) {
         int health = player.getHealth();
 
-        int xStart = getWidth() - (health * 35) - 20; // posisi kanan atas
+        int xStart = getWidth() - (health * 35) - 20;
         int yStart = 10;
 
         for (int i = 0; i < health; i++) {
@@ -405,15 +409,14 @@ public void paintComponent(Graphics g) {
         }
     }
 
+
     private double getCurrentMeteorSpeed() {
         int time = getTimePlayed();
-
-        // setiap 30 detik naik 1.0 speed
         double newSpeed = meteorBaseSpeed + (time / 30) * 2.0;
-
-        // batasi agar tidak melebihi meteorMaxSpeed
         return Math.min(newSpeed, meteorMaxSpeed);
     }
+
+
     private void startBGM() {
         try {
             File file = new File("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bgm2.wav");
@@ -421,7 +424,7 @@ public void paintComponent(Graphics g) {
 
             bgmClip = AudioSystem.getClip();
             bgmClip.open(audio);
-            bgmClip.loop(Clip.LOOP_CONTINUOUSLY); // LOOPING FOREVER
+            bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
             bgmClip.start();
 
         } catch (Exception e) {
@@ -429,11 +432,11 @@ public void paintComponent(Graphics g) {
         }
     }
 
+
     private void stopBGM() {
         if (bgmClip != null && bgmClip.isRunning()) {
             bgmClip.stop();
             bgmClip.close();
         }
     }
-
 }
