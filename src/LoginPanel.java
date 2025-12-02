@@ -25,6 +25,8 @@ public class LoginPanel extends JLayeredPane {
         setLayout(null);
         setOpaque(false);
 
+        setupExitKey(); // 🔥 Tambahkan ESC Handler di seluruh panel
+
         // =======================================================
         //                EXIT BUTTON (ICON)
         // =======================================================
@@ -50,14 +52,13 @@ public class LoginPanel extends JLayeredPane {
             }
         });
 
+        // ============================================
+        // 🔥 KONFIRMASI EXIT SAAT KLIK TOMBOL EXIT
+        // ============================================
         exitBtn.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(
-                LoginPanel.this,
-                "Yakin ingin keluar dari game?",
-                "Konfirmasi Keluar",
-                JOptionPane.YES_NO_OPTION
-            );
-            if (confirm == JOptionPane.YES_OPTION) System.exit(0);
+            if (ExitHandler.confirmExit(LoginPanel.this)) {
+                System.exit(0);
+            }
         });
 
         add(exitBtn, JLayeredPane.PALETTE_LAYER);
@@ -152,20 +153,38 @@ public class LoginPanel extends JLayeredPane {
     }
 
     // =======================================================
+    //                 ESC → EXIT PROGRAM
+    // =======================================================
+    private void setupExitKey() {
+
+        InputMap im = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap am = getActionMap();
+
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "exitProgram");
+
+        am.put("exitProgram", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (ExitHandler.confirmExit(LoginPanel.this)) {
+                    System.exit(0);
+                }
+            }
+        });
+    }
+
+    // =======================================================
     //                 MODERN TEXT FIELD
     // =======================================================
     private JTextField createTextField() {
         JTextField field = new JTextField(12);
         field.setFont(new Font("Arial", Font.PLAIN, 16));
 
-        // FIX: solid background + opaque
         field.setBackground(new Color(10, 10, 10));
         field.setOpaque(true);
 
         field.setForeground(Color.WHITE);
         field.setBorder(BorderFactory.createLineBorder(new Color(0, 200, 255), 2));
 
-        // FIX: paksa repaint penuh agar tidak ghosting
         field.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { field.repaint(); }
@@ -174,7 +193,6 @@ public class LoginPanel extends JLayeredPane {
 
         return field;
     }
-
 
     private JPasswordField createPasswordField() {
         JPasswordField field = new JPasswordField(12);
@@ -194,7 +212,6 @@ public class LoginPanel extends JLayeredPane {
 
         return field;
     }
-
 
     // =======================================================
     //                 MODERN BUTTON
@@ -224,7 +241,7 @@ public class LoginPanel extends JLayeredPane {
     }
 
     // =======================================================
-    //                BRIGHTEN IMAGE FOR HOVER
+    //                BRIGHTEN IMAGE
     // =======================================================
     private Image brightenImage(Image img) {
         BufferedImage buff = new BufferedImage(
@@ -245,9 +262,6 @@ public class LoginPanel extends JLayeredPane {
         return buff;
     }
 
-    // =======================================================
-    //                BACKGROUND RENDER
-    // =======================================================
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -265,7 +279,6 @@ public class LoginPanel extends JLayeredPane {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
         
-
         if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                 "Username dan password tidak boleh kosong!",
