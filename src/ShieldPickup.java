@@ -1,3 +1,4 @@
+
 import java.awt.*;
 
 public class ShieldPickup extends FallingObject implements Collidable {
