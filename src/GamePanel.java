@@ -10,8 +10,11 @@ import javax.swing.*;
 
 public class GamePanel extends JPanel {
 
+    // public static final int LEFT_BOUND = 80;
+    // public static final int RIGHT_BOUND = 80;
+
     private Player player;
-    private Image playerImg, meteorImg, starImg, backgroundImage;
+    private Image playerImg, meteorImg, starImg, backgroundImage, shieldImg;
     private ArrayList<FallingObject> objects = new ArrayList<>();
     private long startTime;
     private long pausedTime = 0;
@@ -29,9 +32,13 @@ public class GamePanel extends JPanel {
     private final long INVINCIBLE_DURATION = 3000; // 3 detik
     private Image heartImg;
     private Image healthImg;
-    private double meteorBaseSpeed = 5.0;     
-    private double meteorMaxSpeed = 17.0;     
+    private double meteorBaseSpeed = 15.0;     
+    private double meteorMaxSpeed = 30.0;     
     private Clip bgmClip;
+
+public int getLeftBound()  { return 5; } // jarak kiri 20px
+public int getRightBound() { return 5; } // jarak kanan 20px
+
 
     public GamePanel(Main aThis, String username) {
         setFocusable(true);
@@ -65,6 +72,7 @@ public class GamePanel extends JPanel {
         starImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\star_128_cropped.png").getImage();
         heartImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\heart_512.png").getImage();
         healthImg= new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\heart_128.png").getImage();
+        shieldImg = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\shield.png").getImage();
     }
 
 
@@ -171,7 +179,12 @@ public class GamePanel extends JPanel {
             @Override
             public void mouseMoved(MouseEvent e) {
                 if (!paused) {
-                    player.moveToCursor(e.getX());
+                    player.moveToCursor(
+                        e.getX(),
+                        getWidth(),
+                        getLeftBound(),
+                        getRightBound()
+                    );
                 }
             }
         });
@@ -185,23 +198,38 @@ public class GamePanel extends JPanel {
         
         if (paused) return;
 
-        if (leftPressed) player.moveLeft();
-        if (rightPressed) player.moveRight(getWidth());
+        if (leftPressed) player.moveLeft(getLeftBound());
+        if (rightPressed) player.moveRight(getWidth(), getRightBound());
+
+
+
 
         // Meteor spawn
-        if (Math.random() < 0.04) {
-            int spawnX = (int) (Math.random() * getWidth());
-            
+        if (Math.random() < 0.09) {
+
+            int w = meteorImg.getWidth(null);
+
+            int minX = getLeftBound() - w / 2;
+            int maxX = getWidth() - getRightBound() - w + w / 2;
+            int spawnX = minX + (int)(Math.random() * (maxX - minX));
+
             double speed = getCurrentMeteorSpeed() + Math.random();
 
             objects.add(new Meteor(spawnX, -200, speed, meteorImg));
         }
 
-        // Star spawn
+
         if (Math.random() < 0.001) {
-            int spawnX = (int) (Math.random() * getWidth());
+
+            int w = starImg.getWidth(null);
+
+            int minX = getLeftBound() - w / 2;
+            int maxX = getWidth() - getRightBound() - w + w / 2;
+            int spawnX = minX + (int)(Math.random() * (maxX - minX));
+
             objects.add(new Star(spawnX, -200, 20 + Math.random() * 3, starImg));
         }
+
 
         ArrayList<FallingObject> removeList = new ArrayList<>();
 
@@ -225,24 +253,41 @@ public class GamePanel extends JPanel {
                         continue;
                     }
 
-                    // METEOR
-                    if (obj instanceof Meteor && !player.isInvincible()) {
+                    // METEOR COLLISION
+                    if (obj instanceof Meteor) {
 
-                        player.takeDamage();
-                        
-                        if (player.getHealth() <= 0) {
-                            captureLastFrame();
-                            gameThread.stopGame();
-                            gameOver();
-                            return;
+                        // Jika ada shield → shield pecah, player aman
+                        if (player.hasShield()) {
+                            player.breakShield();
+                            removeList.add(obj);
+                            continue;
                         }
 
-                        player.setInvincible(true);
-                        invincibleStart = System.currentTimeMillis();
+                        // Jika tidak ada shield & tidak invincible
+                        if (!player.isInvincible()) {
 
-                        player.respawn(getWidth(), getHeight());
+                            player.takeDamage();
+
+                            if (player.getHealth() <= 0) {
+                                captureLastFrame();
+                                gameThread.stopGame();
+                                gameOver();
+                                return;
+                            }
+
+                            player.setInvincible(true);
+                            invincibleStart = System.currentTimeMillis();
+                            player.respawn(getWidth(), getHeight());
+                            removeList.add(obj);
+                            continue;
+                        }
+                    }
+
+                    
+                    if (obj instanceof ShieldPickup) {
 
                         removeList.add(obj);
+                        player.giveShield(); // berikan shield
                         continue;
                     }
                 }
@@ -261,14 +306,41 @@ public class GamePanel extends JPanel {
                 player.setInvincible(false);
             }
         }
+        // SHIELD AUTO EXPIRE (10 DETIK)
+        if (player.hasShield()) {
+            long now = System.currentTimeMillis();
+            if (now - player.getShieldStartTime() >= 10000) { // 10 detik
+                player.breakShield();
+            }
+        }
 
-        // Health pickup spawn jarang
         if (Math.random() < 0.00015) {
-            int spawnX = (int) (Math.random() * getWidth());
+
+            int w = healthImg.getWidth(null);
+
+            int minX = getLeftBound() - w / 2;
+            int maxX = getWidth() - getRightBound() - w + w / 2;
+            int spawnX = minX + (int)(Math.random() * (maxX - minX));
+
             objects.add(new HealthPickup(spawnX, -100, 6 + Math.random(), healthImg));
         }
 
+
+        // Shield spawn (lebih jarang dari health)
+        if (Math.random() < 0.0001) {
+            int w = shieldImg.getWidth(null);
+
+            int minX = getLeftBound() - w / 2;
+            int maxX = getWidth() - getRightBound() - w + w / 2;
+            int spawnX = minX + (int)(Math.random() * (maxX - minX));
+
+            objects.add(new ShieldPickup(spawnX, -150, 7, shieldImg));
+
+        }
+
+
         objects.removeAll(removeList);
+        
     }
 
 

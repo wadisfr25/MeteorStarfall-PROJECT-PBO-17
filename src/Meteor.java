@@ -11,11 +11,12 @@ public class Meteor extends FallingObject implements Collidable {
     public void update() {
         y += speed;
     }
-
+@Override
     public boolean collidesWith(Player p, GamePanel panel) {
         return panel.pixelPerfectCollision(
                 p.getImage(), p.getX(), p.getY(),
                 this.image, this.x, this.y
         );
     }
+    
 }

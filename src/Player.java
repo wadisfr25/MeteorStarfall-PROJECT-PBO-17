@@ -8,6 +8,8 @@ public class Player {
     private Image image;
     private int health = 3; // ❤️ HEALTH AWAL
     private boolean invincible = false; // 🛡️ MODE KEKEBALAN
+    private boolean hasShield = false;
+    private long shieldStartTime = 0;
     
     public int getHealth() { return health; }
     public boolean isInvincible() { return invincible; }
@@ -39,31 +41,69 @@ public class Player {
         this.height = image.getHeight(null);
     }
 
-    public void moveLeft() {
+    public void moveLeft(int leftBound) {
         x -= speed;
-        if (x < 0) x = 0;
+        if (x < leftBound) x = leftBound;
     }
 
-    public void moveRight(int panelWidth) {
+
+    public void moveRight(int panelWidth, int rightBound) {
         x += speed;
-        if (x + width > panelWidth) x = panelWidth - width;
+        if (x + width > panelWidth - rightBound) {
+            x = panelWidth - rightBound - width;
+        }
     }
+
 
     public void draw(Graphics g) {
         if (invincible) {
             long blink = System.currentTimeMillis() % 300;
-            if (blink < 150) return; // efek berkedip saat invincible
+            if (blink < 150) return;
         }
+
+        if (hasShield) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setColor(new Color(0, 200, 255, 120));
+            g2.fillOval(x - 10, y - 10, width + 20, height + 20);
+        }
+
         g.drawImage(image, x, y, null);
     }
 
 
-    public Rectangle getBounds() {
-        return new Rectangle(x, y, width, height);
+public Rectangle getBounds() {
+
+    // shrink hitbox untuk body rocket
+    int shrinkX = width / 6;   // kiri & kanan
+    int shrinkYTop = height / 8;  // atas
+    int shrinkYBottom = height / 5; // bawah
+
+    return new Rectangle(
+        x + shrinkX,
+        y + shrinkYTop,
+        width - shrinkX * 2,
+        height - shrinkYTop - shrinkYBottom
+    );
+}
+
+    public void moveToCursor(int mouseX, int panelWidth, int leftBound, int rightBound) {
+
+        // Posisi berdasarkan mouse
+        int newX = mouseX - width / 2;
+
+        // Batasi kiri
+        if (newX < leftBound) {
+            newX = leftBound;
+        }
+
+        // Batasi kanan
+        if (newX + width > panelWidth - rightBound) {
+            newX = panelWidth - rightBound - width;
+        }
+
+        this.x = newX;
     }
-    public void moveToCursor(int mouseX) {
-    this.x = mouseX - width / 2;
-    }
+
     public int getHeight() { return height; }
 
     public void setY(int y) {
@@ -71,6 +111,22 @@ public class Player {
     }
     public void setHealth(int h) {
         this.health = h;
+    }
+
+    public boolean hasShield() { 
+    return hasShield; 
+    }
+
+    public void giveShield() {
+        hasShield = true;
+        shieldStartTime = System.currentTimeMillis();
+    }
+
+    public void breakShield() {
+        hasShield = false;
+    }
+    public long getShieldStartTime() {
+        return shieldStartTime;
     }
 
 
