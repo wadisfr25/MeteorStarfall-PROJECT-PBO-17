@@ -15,11 +15,11 @@ public class LoginPanel extends JLayeredPane {
         this.mainApp = mainApp;
 
         backgroundImage = new ImageIcon(
-            "D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bg2.png"
+            "assets\\bg2.png"
         ).getImage();
 
         exitIcon = new ImageIcon(
-            "D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\ic-backArrow.png"
+            "assets\\ic-backArrow.png"
         ).getImage();
 
         setLayout(null);

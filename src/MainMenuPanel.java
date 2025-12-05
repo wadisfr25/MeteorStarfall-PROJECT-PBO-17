@@ -16,7 +16,7 @@ public class MainMenuPanel extends JPanel {
         this.username = username;
         setupExitKey();
 
-        backgroundImage = new ImageIcon("D:\\FILE MATKUL SMT 5\\PBO\\PROJECT-PBO\\MeteorStarfall\\assets\\bg2.png").getImage();
+        backgroundImage = new ImageIcon("assets\\bg2.png").getImage();
 
         setLayout(new GridBagLayout());
         setOpaque(false);

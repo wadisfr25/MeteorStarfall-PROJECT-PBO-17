@@ -521,7 +521,7 @@ public class GamePanel extends JPanel {
         //                       SPAWN SHIELD LEBIH LANGKA
         // ============================================================
 
-        if (Math.random() < 0.1) {
+        if (Math.random() < 0.0001) {
             int w = shieldImg.getWidth(null);
 
             int minX = getLeftBound() - w / 2;
